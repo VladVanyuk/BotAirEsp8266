@@ -41,17 +41,18 @@ void newMsg(FB_msg& msg) {
   if (msg.toString() == "/toggle_ac") {
     if (acState == LOW) {
       samsungON();
-      bot.sendMessage("Now ON", msg.chatID);
+      bot.replyMessage("Now ON", msg.messageID, msg.chatID);
     } else if (acState == HIGH) {
       samsungOFF();
-      bot.sendMessage("Now OFF", msg.chatID);
+      bot.replyMessage("Now OFF", msg.messageID, msg.chatID);
     }
   } else if (msg.toString() == "/on") {
     samsungON();
-    bot.sendMessage("Now ON", msg.chatID);
+    bot.replyMessage("Now ON", msg.messageID, msg.chatID);
   } else if (msg.toString() == "/off") {
     samsungOFF();
-    bot.sendMessage("Now OFF", msg.chatID);
+    bot.replyMessage("Now OFF", msg.messageID, msg.chatID);
+
   }
 }
 
@@ -101,7 +102,7 @@ void setup() {
   // можно сменить размер буфера на (приём, отправку), по умолч. 512, 512
   //bot.setBufferSizes(1024, 512);
 
-  bot.setChatID(CHAT_ID); 
+  bot.setChatID(CHAT_ID);
   //bot.setChatID("123456,7891011,12131415");
   bot.attach(newMsg);
   bot.sendMessage("Hello, World!");
