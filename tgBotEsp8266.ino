@@ -8,8 +8,8 @@
 #define WIFI_SSID "AsusLyra"
 #define WIFI_PASS "123456qwerty"
 #define BOT_TOKEN "5591834898:AAGhq1f9sPCLL78i-ySib_5XqicI8Kd8V1Y"
-//#define CHAT_ID "5589891711"
-#define CHAT_ID ""
+#define CHAT_ID "5589891711"
+//#define CHAT_ID ""
 
 const int buttonPin = D3;
 int currentState;
@@ -82,6 +82,7 @@ void samsungON() {
   ac.on();
   ac.send();
   acState != acState;
+  blinkLed();
 }
 
 void samsungOFF() {
@@ -89,6 +90,7 @@ void samsungOFF() {
   ac.off();
   ac.send();
   acState != acState;
+  blinkLed();
 }
 
 void setup() {
@@ -98,10 +100,8 @@ void setup() {
 
   // можно сменить размер буфера на (приём, отправку), по умолч. 512, 512
   //bot.setBufferSizes(1024, 512);
-  // установить ID чата, чтобы принимать сообщения только из него
-  // узнать ID можно из ручного запроса в браузере
-  bot.setChatID(CHAT_ID); // передай "" (пустую строку) чтобы отключить проверку
-  // можно указать несколько ID через запятую
+
+  bot.setChatID(CHAT_ID); 
   //bot.setChatID("123456,7891011,12131415");
   bot.attach(newMsg);
   bot.sendMessage("Hello, World!");
