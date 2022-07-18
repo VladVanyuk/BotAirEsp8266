@@ -5,14 +5,22 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
+/*#include <IRrecv.h>
+  #include <IRutils.h>
+  #define D5 14
+  uint16_t RECV_PIN = D5; // ИК-детектор
+  IRrecv irrecv(RECV_PIN);
+  decode_results results;*/
 
 
-#define WIFI_SSID ""
-#define WIFI_PASS ""
+#define WIFI_SSID "Home"
+#define WIFI_PASS "dima1307"
 #define BOT_TOKEN "5591834898:AAGhq1f9sPCLL78i-ySib_5XqicI8Kd8V1Y"
 //#define CHAT_ID "5589891711"
 //#define CHAT_ID ""
 String chat_id = "5589891711";
+String chat_id2 = "369618659";
+String chat_id3 = "5589891711, 369618659";
 
 const unsigned long BOT_MTBS = 1000; // mean time between scan messages
 
@@ -125,6 +133,33 @@ void samsungOFF() {
   acState = LOW;
   blinkLed();
 }
+void samsungCool() {
+  Serial.println("Set the A/C mode to cooling ...");
+  ac.setMode(kSamsungAcCool);
+  ac.send();
+  blinkLed();
+}
+
+void samsungFanHigh() {
+  Serial.println("Set the fan to high and the swing on ...");
+  ac.setFan(kSamsungAcFanHigh);
+  ac.setSwing(true);
+  ac.send();
+  blinkLed();
+
+}
+
+
+void samsungFanLow() {
+  // Change to Fan mode, lower the speed, and stop the swing.
+  Serial.println("Set the A/C to fan only with a low speed, & no swing ...");
+  ac.setSwing(false);
+  ac.setMode(kSamsungAcFan);
+  ac.setFan(kSamsungAcFanLow);
+  ac.send();
+  blinkLed();
+
+}
 
 void setup() {
   Serial.begin(115200);
@@ -137,8 +172,8 @@ void setup() {
   secured_client.setTrustAnchors(&cert);
   setupWiFi();
 
-
-  bot.sendMessage(chat_id, "ESP8266 WiFi Telegram Test is Started!", "");
+  //bot.sendMessage(chat_id, "ESP8266 WiFi Telegram Test is Started!", "");
+  bot.sendMessage(chat_id3, "ESP8266 WiFi Telegram Test is Started!", "");
 
   ac.begin();
   Serial.println("Setting initial state for A/C.");
