@@ -2,28 +2,50 @@
 #include <IRremoteESP8266.h>
 #include <IRsend.h>
 #include <ir_Samsung.h>
-#include <FastBot.h>
+#include <ESP8266WiFi.h>
+#include <WiFiClientSecure.h>
+#include <UniversalTelegramBot.h>
+#include <IRrecv.h>
+#include <IRutils.h>
+#define D5 14
+uint16_t RECV_PIN = D5; // ИК-детектор
+IRrecv irrecv(RECV_PIN);
+decode_results results;
+bool receiverEnabled = false;
 
-
-#define WIFI_SSID "AsusLyra"
-#define WIFI_PASS "123456qwerty"
+#define WIFI_SSID "Home"
+#define WIFI_PASS "dima1307"
+#define WIFI_SSID2 "AsusLyra"
+#define WIFI_PASS2 "123456qwerty"
 #define BOT_TOKEN "5591834898:AAGhq1f9sPCLL78i-ySib_5XqicI8Kd8V1Y"
-#define CHAT_ID "5589891711"
+//#define CHAT_ID "5589891711"
 //#define CHAT_ID ""
+String chat_id = "5589891711";
+String chat_id2 = "369618659";
+String chat_id3 = "5589891711, 369618659";
 
+const unsigned long BOT_MTBS = 1000; // mean time between scan messages
+
+bool Notification = false;
+bool Allownotifications = true;
+unsigned long bot_lasttime; // last time messages' scan has been done
+
+bool flag = false;
+unsigned long timerDelay = 10000;
+unsigned long timerButton = 0;
 const int buttonPin = D3;
 int currentState;
 int lastState = HIGH;
 int acState = LOW;
-
 const uint16_t kIrLed = D2;  // ESP8266 GPIO pin to use. Recommended: 4 (D2).
 IRSamsungAc ac(kIrLed);
-FastBot bot(BOT_TOKEN);
+
+X509List cert(TELEGRAM_CERTIFICATE_ROOT);
+WiFiClientSecure secured_client;
+UniversalTelegramBot bot(BOT_TOKEN, secured_client);
 
 void setupWiFi() {
-  delay(2000);
-  Serial.begin(115200);
-  Serial.println();
+  delay(200);
 
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   while (WiFi.status() != WL_CONNECTED) {
@@ -31,28 +53,74 @@ void setupWiFi() {
     delay(1000);
     Serial.print(".");
   }
-  Serial.println("Connected");
+  Serial.print("\nWiFi connected. IP address: ");
+  Serial.println(WiFi.localIP());
 }
 
-// обработчик сообщений
-void newMsg(FB_msg& msg) {
-  Serial.println(msg.toString());
-  //bot.sendMessage(msg.text, msg.chatID);
-  if (msg.toString() == "/toggle_ac") {
-    if (acState == LOW) {
-      samsungON();
-      bot.replyMessage("Now ON", msg.messageID, msg.chatID);
-    } else if (acState == HIGH) {
-      samsungOFF();
-      bot.replyMessage("Now OFF", msg.messageID, msg.chatID);
-    }
-  } else if (msg.toString() == "/on") {
-    samsungON();
-    bot.replyMessage("Now ON", msg.messageID, msg.chatID);
-  } else if (msg.toString() == "/off") {
-    samsungOFF();
-    bot.replyMessage("Now OFF", msg.messageID, msg.chatID);
 
+void handleNewMessages(int numNewMessages)
+{
+  Serial.print("handleNewMessages ");
+  Serial.println(numNewMessages);
+
+  for (int i = 0; i < numNewMessages; i++)
+  {
+    //String chat_id = bot.messages[i].chat_id;
+    String text = bot.messages[i].text;
+
+    if (text == "/on")
+    {
+      samsungON();
+      bot.sendMessage(chat_id, "AC is ON", "");
+    }
+
+    if (text == "/off")
+    {
+      samsungOFF();
+      bot.sendMessage(chat_id, "AC is OFF", "");
+    }
+
+    if (text == "/cool")
+    {
+      samsungCool();
+      bot.sendMessage(chat_id, "AC mode Cool", "");
+    }
+
+    if (text == "/fanhigh")
+    {
+      samsungFanHigh();
+      bot.sendMessage(chat_id, "AC mode FanHigh", "");
+    }
+
+    if (text == "/fanlow")
+    {
+      samsungFanLow();
+      bot.sendMessage(chat_id, "AC mode FanLow", "");
+    }
+
+    if (text == "/toggle") {
+      if (acState == LOW) {
+        samsungON();
+        bot.sendMessage(chat_id, "AC is ON", "");
+      } else if (acState == HIGH) {
+        samsungOFF();
+        bot.sendMessage(chat_id, "AC is OFF", "");
+      }
+    }
+
+    if (text == "/help")
+    {
+      String welcome = "Welcome to ESP8266 WiFi Telegram Test!\n";
+      welcome += "Enter the following commands to configure:\n\n";
+      welcome += "/toggle : to toggle AC mode ON/OFF";
+      welcome += "/on : to switch the AC ON\n";
+      welcome += "/off : to switch the AC OFF\n";
+      welcome += "/cool : to set AC mode COOL";
+      welcome += "/fanlow : to set AC mode FANLOW";
+      welcome += "/fanhigh : to set AC mode FANHIGH";
+
+      bot.sendMessage(chat_id, welcome, "Markdown");
+    }
   }
 }
 
@@ -60,6 +128,36 @@ void blinkLed() {
   digitalWrite(LED_BUILTIN, LOW); //on
   delay(500);
   digitalWrite(LED_BUILTIN, HIGH);//off
+}
+
+
+void activateReceiverIR() {
+  bool btnState = !digitalRead(buttonPin);
+  timerButton = millis();
+  if (btnState && !flag && millis() - timerButton > 100) {
+    flag = true;
+    timerButton = millis();
+    Serial.println("press");
+  }
+  if (btnState && flag && millis() - timerButton > timerDelay) {
+    timerButton = millis();
+    Serial.println("press holdув 10 Seconds");
+    irrecv.enableIRIn();
+    receiverEnabled = true;
+    blinkLed();
+  }
+  if (!btnState && flag && millis() - timerButton > 500) {
+    flag = false;
+    timerButton = millis();
+    Serial.println("release");
+  }
+
+  if (receiverEnabled == true) {
+    if ( irrecv.decode( &results )) { // если данные пришли
+      Serial.println(results.value);
+      irrecv.resume(); // принимаем следующую команду
+    }
+  }
 }
 
 void manual_control() {
@@ -78,11 +176,12 @@ void manual_control() {
   delay(100);
 }
 
+
 void samsungON() {
   Serial.println("Turn on the A/C ");
   ac.on();
   ac.send();
-  acState != acState;
+  acState = HIGH;
   blinkLed();
 }
 
@@ -90,22 +189,50 @@ void samsungOFF() {
   Serial.println("Turn off the A/C ");
   ac.off();
   ac.send();
-  acState != acState;
+  acState = LOW;
+  blinkLed();
+}
+void samsungCool() {
+  Serial.println("Set the A/C mode to cooling ...");
+  ac.setMode(kSamsungAcCool);
+  ac.send();
   blinkLed();
 }
 
+void samsungFanHigh() {
+  Serial.println("Set the fan to high and the swing on ...");
+  ac.setFan(kSamsungAcFanHigh);
+  ac.setSwing(true);
+  ac.send();
+  blinkLed();
+
+}
+
+void samsungFanLow() {
+  // Change to Fan mode, lower the speed, and stop the swing.
+  Serial.println("Set the A/C to fan only with a low speed, & no swing ...");
+  ac.setSwing(false);
+  ac.setMode(kSamsungAcFan);
+  ac.setFan(kSamsungAcFanLow);
+  ac.send();
+  blinkLed();
+
+}
+
 void setup() {
+  Serial.begin(115200);
+  Serial.println();
+
   pinMode(buttonPin, INPUT);
   pinMode(LED_BUILTIN, OUTPUT);
+
+  configTime(0, 0, "pool.ntp.org");      // get UTC time via NTP
+  secured_client.setTrustAnchors(&cert);
   setupWiFi();
 
-  // можно сменить размер буфера на (приём, отправку), по умолч. 512, 512
-  //bot.setBufferSizes(1024, 512);
+  //bot.sendMessage(chat_id, "ESP8266 WiFi Telegram Test is Started!", "");
+  bot.sendMessage(chat_id3, "ESP8266 WiFi Telegram Test is Started!", "");
 
-  bot.setChatID(CHAT_ID);
-  //bot.setChatID("123456,7891011,12131415");
-  bot.attach(newMsg);
-  bot.sendMessage("Hello, World!");
   ac.begin();
   Serial.println("Setting initial state for A/C.");
   ac.off();
@@ -117,5 +244,17 @@ void setup() {
 
 void loop() {
   manual_control();
-  bot.tick();   // тикаем в луп
+  activateReceiverIR();
+  if (millis() - bot_lasttime > BOT_MTBS)
+  {
+    int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+
+    while (numNewMessages)
+    {
+      Serial.println("got response");
+      handleNewMessages(numNewMessages);
+      numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+    }
+    bot_lasttime = millis();
+  }
 }
