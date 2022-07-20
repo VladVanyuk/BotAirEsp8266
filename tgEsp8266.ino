@@ -5,16 +5,23 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
-/*#include <IRrecv.h>
-  #include <IRutils.h>
-  #define D5 14
-  uint16_t RECV_PIN = D5; // ИК-детектор
-  IRrecv irrecv(RECV_PIN);
-  decode_results results;*/
+#include <IRrecv.h>
+#include <IRutils.h>
+//#include <FS.h>
+//#include <SPIFFS.h>
+//#include <HTTPUpdate.h>
 
+
+#define D5 14
+uint16_t RECV_PIN = D5; // ИК-детектор
+IRrecv irrecv(RECV_PIN);
+decode_results results;
+bool receiverEnabled = false;
 
 #define WIFI_SSID "Home"
 #define WIFI_PASS "dima1307"
+#define WIFI_SSID2 "AsusLyra"
+#define WIFI_PASS2 "123456qwerty"
 #define BOT_TOKEN "5591834898:AAGhq1f9sPCLL78i-ySib_5XqicI8Kd8V1Y"
 //#define CHAT_ID "5589891711"
 //#define CHAT_ID ""
@@ -28,6 +35,9 @@ bool Notification = false;
 bool Allownotifications = true;
 unsigned long bot_lasttime; // last time messages' scan has been done
 
+bool flag = false;
+unsigned long timerDelay = 10000;
+unsigned long timerButton = 0;
 const int buttonPin = D3;
 int currentState;
 int lastState = HIGH;
@@ -63,6 +73,24 @@ void handleNewMessages(int numNewMessages)
     //String chat_id = bot.messages[i].chat_id;
     String text = bot.messages[i].text;
 
+    if (text == "/status")
+    {
+      String statusMsg = "Current status: \n";
+      statusMsg += "Enter the following commands to configure:\n\n";
+      statusMsg += "power : ";
+      statusMsg += String(ac.getPower());
+      statusMsg += "Temperature : ";
+      statusMsg += String(ac.getTemp());
+      statusMsg += "Mode : ";
+      statusMsg += String(ac.getMode());
+      statusMsg += "Fan : ";
+      statusMsg += String(ac.getFan());
+      statusMsg += "Swing : ";
+      statusMsg += String(ac.getSwing());
+
+      bot.sendMessage(chat_id, statusMsg, "Markdown");
+    }
+
     if (text == "/on")
     {
       samsungON();
@@ -75,6 +103,24 @@ void handleNewMessages(int numNewMessages)
       bot.sendMessage(chat_id, "AC is OFF", "");
     }
 
+    if (text == "/cool")
+    {
+      samsungCool();
+      bot.sendMessage(chat_id, "AC mode Cool", "");
+    }
+
+    if (text == "/fanhigh")
+    {
+      samsungFanHigh();
+      bot.sendMessage(chat_id, "AC mode FanHigh", "");
+    }
+
+    if (text == "/fanlow")
+    {
+      samsungFanLow();
+      bot.sendMessage(chat_id, "AC mode FanLow", "");
+    }
+
     if (text == "/toggle") {
       if (acState == LOW) {
         samsungON();
@@ -85,14 +131,35 @@ void handleNewMessages(int numNewMessages)
       }
     }
 
+    if (text == "/swing_on")
+    {
+      samsungSetSwingON();
+      bot.sendMessage(chat_id, "AC swing ON", "");
+    }
+
+    if (text == "/swing_off")
+    {
+      samsungSetSwingOFF();
+      bot.sendMessage(chat_id, "AC swing OFF", "");
+    }
+
     if (text == "/help")
     {
       String welcome = "Welcome to ESP8266 WiFi Telegram Test!\n";
       welcome += "Enter the following commands to configure:\n\n";
-      welcome += "/on : to switch the Led 1 ON\n";
-      welcome += "/off : to switch the Led 1 OFF\n";
+      welcome += "/toggle : to toggle AC mode ON/OFF";
+      welcome += "/on : to switch the AC ON\n";
+      welcome += "/off : to switch the AC OFF\n";
+      welcome += "/cool : to set AC mode COOL";
+      welcome += "/fanlow : to set AC mode FANLOW";
+      welcome += "/fanhigh : to set AC mode FANHIGH";
+      welcome += "/swing_on : to set AC swing ON";
+      welcome += "/swing_off : to set AC swing OFF";
+      welcome += "/status : get current AC status";
+
       bot.sendMessage(chat_id, welcome, "Markdown");
     }
+
   }
 }
 
@@ -100,6 +167,36 @@ void blinkLed() {
   digitalWrite(LED_BUILTIN, LOW); //on
   delay(500);
   digitalWrite(LED_BUILTIN, HIGH);//off
+}
+
+
+void activateReceiverIR() {
+  bool btnState = !digitalRead(buttonPin);
+  timerButton = millis();
+  if (btnState && !flag && millis() - timerButton > 100) {
+    flag = true;
+    timerButton = millis();
+    Serial.println("press");
+  }
+  if (btnState && flag && millis() - timerButton > timerDelay) {
+    timerButton = millis();
+    Serial.println("press holdув 10 Seconds");
+    irrecv.enableIRIn();
+    receiverEnabled = true;
+    blinkLed();
+  }
+  if (!btnState && flag && millis() - timerButton > 500) {
+    flag = false;
+    timerButton = millis();
+    Serial.println("release");
+  }
+
+  if (receiverEnabled == true) {
+    if ( irrecv.decode( &results )) { // если данные пришли
+      Serial.println(results.value);
+      irrecv.resume(); // принимаем следующую команду
+    }
+  }
 }
 
 void manual_control() {
@@ -118,9 +215,12 @@ void manual_control() {
   delay(100);
 }
 
+
 void samsungON() {
   Serial.println("Turn on the A/C ");
   ac.on();
+  ac.setTemp(16);
+  samsungFanHigh();
   ac.send();
   acState = HIGH;
   blinkLed();
@@ -135,20 +235,19 @@ void samsungOFF() {
 }
 void samsungCool() {
   Serial.println("Set the A/C mode to cooling ...");
+  ac.setSwing(false);
   ac.setMode(kSamsungAcCool);
   ac.send();
   blinkLed();
 }
 
 void samsungFanHigh() {
-  Serial.println("Set the fan to high and the swing on ...");
+  Serial.println("Set the fan to high ");
+  ac.setSwing(false);
   ac.setFan(kSamsungAcFanHigh);
-  ac.setSwing(true);
   ac.send();
   blinkLed();
-
 }
-
 
 void samsungFanLow() {
   // Change to Fan mode, lower the speed, and stop the swing.
@@ -158,7 +257,20 @@ void samsungFanLow() {
   ac.setFan(kSamsungAcFanLow);
   ac.send();
   blinkLed();
+}
 
+void samsungSetSwingON() {
+  Serial.println("Set the A/C swing ON");
+  ac.setSwing(true);
+  ac.send();
+  blinkLed();
+}
+
+void samsungSetSwingOFF() {
+  Serial.println("Set the A/C swing OFF");
+  ac.setSwing(false);
+  ac.send();
+  blinkLed();
 }
 
 void setup() {
@@ -178,7 +290,8 @@ void setup() {
   ac.begin();
   Serial.println("Setting initial state for A/C.");
   ac.off();
-
+  ac.setSwing(false);
+  ac.setTemp(16);
   digitalWrite(LED_BUILTIN, HIGH);
 }
 
@@ -186,6 +299,7 @@ void setup() {
 
 void loop() {
   manual_control();
+  activateReceiverIR();
   if (millis() - bot_lasttime > BOT_MTBS)
   {
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
