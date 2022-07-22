@@ -27,11 +27,10 @@ int lastState = HIGH;
 
 void blinkLed() {
   digitalWrite(LED_BUILTIN, LOW); //on
-  timerReceived = millis();
-  if (millis() - timerReceived > 1000) {
-    digitalWrite(LED_BUILTIN, HIGH);//off}
-  }
+  delay(500);
+  digitalWrite(LED_BUILTIN, HIGH);//off}
 }
+
 
 void receiverIR() {
   if (receiverEnabled == true) {

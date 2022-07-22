@@ -7,8 +7,9 @@
 #define WIFI_SSID2 "AsusLyra"
 #define WIFI_PASS2 "123456qwerty"
 #define BOT_TOKEN "5591834898:AAGhq1f9sPCLL78i-ySib_5XqicI8Kd8V1Y"
+String chat_id = "5589891711";
 
-String chat_id = "369618659";
+String chat_id2 = "369618659";
 
 //String chat_id[] = {"5589891711", "369618659"};
 
@@ -30,9 +31,7 @@ void handleNewMessages(int numNewMessages)
 
   for (int i = 0; i < numNewMessages; i++)
   {
-    if (bot.messages[i].hasDocument == true) {
-      bot.sendMessage(chat_id, "UPDATE !!!!!!!", "");
-    }
+   
 
     String text = bot.messages[i].text;
     if (text == "/status")
