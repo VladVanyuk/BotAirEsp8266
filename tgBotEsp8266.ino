@@ -20,9 +20,9 @@ void manual_control() {
   if (lastState == HIGH && currentState == LOW) {
     Serial.println("button was pressed");
     blinkLed();
-    if (acState == LOW) {
+    if (ac.getPower == LOW) {
       samsungON();
-    } else if (acState == HIGH) {
+    } else if (getPower == HIGH) {
       samsungOFF();
     }
   }
@@ -41,6 +41,7 @@ void setup() {
   bot.sendMessage(chat_id, "VladAir is Started!", "");
   ac.begin();
   Serial.println("Setting initial state for A/C.");
+  ac.stateReset();
   ac.off();
   ac.setSwing(false);
   ac.setTemp(16);
@@ -49,7 +50,8 @@ void setup() {
 
 void loop() {
   manual_control();
-  receiverIR();
+  //receiverIR();
+  receiverIRSam();
   if (millis() - bot_lasttime > BOT_MTBS)
   {
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);

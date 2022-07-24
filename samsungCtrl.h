@@ -12,7 +12,7 @@ IRrecv irrecv(RECV_PIN);
 decode_results results;
 
 bool receiverEnabled = true;
-int acState = LOW;
+//int acState = LOW;
 
 const uint16_t kIrLed = D2;  // ESP8266 GPIO pin to use. Recommended: 4 (D2).
 IRSamsungAc ac(kIrLed);
@@ -49,13 +49,21 @@ void receiverIR() {
   }
 }
 
+
+void receiverIRSam() {
+  if (receiverEnabled == true) {
+    irrecv.decodeSamsungAC( &results ))  // если данные пришли
+
+  }
+}
+
 void samsungON() {
   Serial.println("Turn on the A/C ");
   ac.on();
   ac.setTemp(16);
   ac.setFan(kSamsungAcFanHigh);
   ac.send();
-  acState = HIGH;
+ // acState = HIGH;
   blinkLed();
 }
 
@@ -63,7 +71,7 @@ void samsungOFF() {
   Serial.println("Turn off the A/C ");
   ac.off();
   ac.send();
-  acState = LOW;
+ // acState = LOW;
   blinkLed();
 }
 void samsungCool() {
