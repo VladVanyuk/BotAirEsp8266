@@ -1,6 +1,5 @@
 #include "samsungCtrl.h"
 #include "tgCtrl.h"
-//#include "tgUpdate.h"
 
 void setupWiFi() {
   delay(200);
@@ -19,12 +18,7 @@ void manual_control() {
   currentState = digitalRead(buttonPin);
   if (lastState == HIGH && currentState == LOW) {
     Serial.println("button was pressed");
-    blinkLed();
-    if (acState == LOW) {
-      samsungON();
-    } else if (acState == HIGH) {
-      samsungOFF();
-    }
+    ESP.restart();
   }
   lastState = currentState;
 }
@@ -41,9 +35,11 @@ void setup() {
   bot.sendMessage(chat_id, "VladAir is Started!", "");
   ac.begin();
   Serial.println("Setting initial state for A/C.");
+  ac.stateReset();
+  /*
   ac.off();
   ac.setSwing(false);
-  ac.setTemp(16);
+  ac.setTemp(16); */
   digitalWrite(LED_BUILTIN, HIGH);
 }
 

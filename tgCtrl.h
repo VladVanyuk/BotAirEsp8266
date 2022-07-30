@@ -1,21 +1,16 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
+//#include "samsungCtrl.h"
 
 #define WIFI_SSID "Home"
 #define WIFI_PASS "dima1307"
-#define WIFI_SSID2 "AsusLyra"
-#define WIFI_PASS2 "123456qwerty"
-#define BOT_TOKEN "5591834898:AAGhq1f9sPCLL78i-ySib_5XqicI8Kd8V1Y"
-String chat_id = "5589891711";
-
-String chat_id2 = "369618659";
-
-//String chat_id[] = {"5589891711", "369618659"};
+#define BOT_TOKEN "5591834898:AAFjzip9BD6598vzsgtiM3Ia1TsoLPpf7g0"
+String chat_id = "369618659";
 
 const unsigned long BOT_MTBS = 1000; // mean time between scan messages
 
-bool Notification = false;
+bool Notification = true;
 bool Allownotifications = true;
 unsigned long bot_lasttime; // last time messages' scan has been done
 
@@ -31,11 +26,12 @@ void handleNewMessages(int numNewMessages)
 
   for (int i = 0; i < numNewMessages; i++)
   {
-   
+
 
     String text = bot.messages[i].text;
     if (text == "/status")
     {
+      //ac.toString();
       String statusMsg = "Current status: \n";
       statusMsg += "Enter the following commands to configure:\n\n";
       statusMsg += "\nPower : ";
@@ -50,6 +46,8 @@ void handleNewMessages(int numNewMessages)
       statusMsg += String(ac.getSwing());
 
       bot.sendMessage(chat_id, statusMsg, "Markdown");
+      bot.sendMessage(chat_id, ac.toString(), "Markdown");
+
     }
 
     if (text == "/on")
