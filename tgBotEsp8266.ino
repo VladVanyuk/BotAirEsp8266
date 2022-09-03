@@ -1,6 +1,5 @@
 #include "samsungCtrl.h"
 #include "tgCtrl.h"
-//#include "tgUpdate.h"
 
 void setupWiFi() {
   delay(200);
@@ -19,15 +18,9 @@ void manual_control() {
   currentState = digitalRead(buttonPin);
   if (lastState == HIGH && currentState == LOW) {
     Serial.println("button was pressed");
-    blinkLed();
-    if (acState == LOW) {
-      samsungON();
-    } else if (acState == HIGH) {
-      samsungOFF();
-    }
+    ESP.restart();
   }
   lastState = currentState;
-  delay(100);
 }
 
 void setup() {
@@ -35,21 +28,24 @@ void setup() {
   Serial.println();
   pinMode(buttonPin, INPUT);
   pinMode(LED_BUILTIN, OUTPUT);
+  irrecv.enableIRIn();
   configTime(0, 0, "pool.ntp.org");      // get UTC time via NTP
   secured_client.setTrustAnchors(&cert);
   setupWiFi();
-  bot.sendMessage(chat_id, "ESP8266 WiFi Telegram Test is Started!", "");
+  bot.sendMessage(chat_id, "VladAir is Started!", "");
   ac.begin();
   Serial.println("Setting initial state for A/C.");
+  ac.stateReset();
+  /*
   ac.off();
   ac.setSwing(false);
-  ac.setTemp(16);
+  ac.setTemp(16); */
   digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void loop() {
   manual_control();
-  activateReceiverIR();
+  receiverIR();
   if (millis() - bot_lasttime > BOT_MTBS)
   {
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);

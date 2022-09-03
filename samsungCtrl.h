@@ -7,18 +7,20 @@
 
 #define D5 14
 
-uint16_t RECV_PIN = D5; // ИК-детектор
+const int RECV_PIN = D5; // ИК-детектор
 IRrecv irrecv(RECV_PIN);
 decode_results results;
-bool receiverEnabled = false;
+
+bool receiverEnabled = true;
 int acState = LOW;
 
 const uint16_t kIrLed = D2;  // ESP8266 GPIO pin to use. Recommended: 4 (D2).
 IRSamsungAc ac(kIrLed);
 
-bool flag = false;
+//bool flag = false;
 unsigned long timerDelay = 10000;
 unsigned long timerButton = 0;
+unsigned long timerReceived = 0;
 const int buttonPin = D3;
 int currentState;
 int lastState = HIGH;
@@ -26,34 +28,27 @@ int lastState = HIGH;
 void blinkLed() {
   digitalWrite(LED_BUILTIN, LOW); //on
   delay(500);
-  digitalWrite(LED_BUILTIN, HIGH);//off
+  digitalWrite(LED_BUILTIN, HIGH);//off}
 }
+ 
 
-void activateReceiverIR() {
-  bool btnState = !digitalRead(buttonPin);
-  timerButton = millis();
-  if (btnState && !flag && millis() - timerButton > 100) {
-    flag = true;
-    timerButton = millis();
-    Serial.println("press");
-  }
-  if (btnState && flag && millis() - timerButton > timerDelay) {
-    timerButton = millis();
-    Serial.println("press holdув 10 Seconds");
-    irrecv.enableIRIn();
-    receiverEnabled = true;
-    blinkLed();
-  }
-  if (!btnState && flag && millis() - timerButton > 500) {
-    flag = false;
-    timerButton = millis();
-    Serial.println("release");
-  }
 
+void receiverIR() {
   if (receiverEnabled == true) {
     if ( irrecv.decode( &results )) { // если данные пришли
       Serial.println(results.value);
-      irrecv.resume(); // принимаем следующую команду
+      if (results.decode_type == SAMSUNG_AC) {
+        Serial.println("LOOOOOL");
+      }
+      switch (results.value) {
+        case 3064457680://off
+          ac.off();
+          break;
+        case 295605724:
+          ac.on();
+          break;
+      }
+      irrecv.resume();
     }
   }
 }
@@ -114,3 +109,5 @@ void samsungSetSwingOFF() {
   ac.send();
   blinkLed();
 }
+
+//void samsungSetTemp()
