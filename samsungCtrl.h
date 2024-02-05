@@ -7,7 +7,7 @@
 
 #define D5 14
 
-uint16_t RECV_PIN = D5; // ИК-детектор
+const int RECV_PIN = D5; // ИК-детектор
 IRrecv irrecv(RECV_PIN);
 decode_results results;
 
@@ -30,12 +30,16 @@ void blinkLed() {
   delay(500);
   digitalWrite(LED_BUILTIN, HIGH);//off}
 }
+ 
 
 
 void receiverIR() {
   if (receiverEnabled == true) {
     if ( irrecv.decode( &results )) { // если данные пришли
       Serial.println(results.value);
+      if (results.decode_type == SAMSUNG_AC) {
+        Serial.println("LOOOOOL");
+      }
       switch (results.value) {
         case 3064457680://off
           ac.off();
